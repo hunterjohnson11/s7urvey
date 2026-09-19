@@ -9,8 +9,6 @@ survey_var(
   cols = character(0),
   type = character(0),
   question_text = NA_character_,
-  subquestion_labels = list(),
-  option_labels = list(),
   response_options = list()
 )
 }
@@ -19,52 +17,55 @@ survey_var(
 \code{"M_SPORTS"}.}
 
 \item{cols}{A character vector of one or more raw column names backing
-the question, e.g. \code{c("M_SPORTS_1", "M_SPORTS_2")}.}
+the question, e.g. \code{c("M_SPORTS_1", "M_SPORTS_2")}. Must not contain
+duplicates, \code{NA}, or empty strings.}
 
 \item{type}{A single string describing the question's shape: one of
-\code{"single"}, \code{"multi"}, \code{"matrix"}, \code{"open_end"}, or \code{"other"}. Column
-count is validated against \code{type}: \code{single}/\code{open_end} require exactly
-one column in \code{cols}; \code{multi}/\code{matrix} require more than one.}
+\code{"single"}, \code{"multi"}, \code{"open_end"}, or \code{"other"}. \code{"single"} and
+\code{"open_end"} require exactly one column in \code{cols}.}
 
 \item{question_text}{A single string with the question as asked, or \code{NA}
 if not (yet) known.}
 
-\item{subquestion_labels}{A named list mapping each column in \code{cols} to
-the sub-question it represents. Relevant for \code{matrix} questions, where
-each column is a separate item sharing a common response scale; an
-empty list otherwise. Any names present must match entries in \code{cols}.}
-
-\item{option_labels}{A named list mapping each column in \code{cols} to the
-response option it represents. Relevant for \code{multi} questions, where
-each column is a dummy-coded choice within one question (not a separate
-sub-question); an empty list otherwise. Any names present must match
-entries in \code{cols}.}
-
-\item{response_options}{A named list mapping response value codes to
-their label text. Relevant for \code{single}/\code{matrix} questions; an empty
-list otherwise.}
+\item{response_options}{A named list mapping each possible answer to its
+label text, or an empty list if not (yet) known. What the names mean
+depends on \code{type}: for \code{"single"} they are the value codes stored in the
+column (e.g. \code{`1` = "Male"}); for \code{"multi"} they are entries in
+\code{cols}, one per selectable option (e.g. \code{M_SPORTS_1 = "Basketball"}),
+because a multi-select's options are dummy-coded one per column. In both
+cases the name is the key you look up to find that option in the data.}
 }
 \value{
 A \code{survey_var} object.
 }
 \description{
 \code{survey_var} represents one survey question as a single object, whether
-it's backed by one raw column (e.g. a single-select) or several sharing a
-stem (e.g. a multi-select or matrix). Objects are built by hand; no field
-is inferred from data.
+it's backed by one raw column (a single-select or open-end) or several
+sharing a stem (a multi-select, dummy-coded one column per option).
+Objects are built by hand; no field is inferred from data.
+}
+\details{
+A question whose parts are answered \emph{separately} -- a matrix/grid, or a
+question looped over some dimension -- is a \link{survey_var_group}, not a
+\code{survey_var}. The distinction is how many answers the respondent gives:
+a multi-select is one answer that happens to be a set, while a matrix is
+several answers that happen to share a scale.
 }
 \examples{
-# `example_survey` stores M_SPORTS as one dummy column per sport; here
-# it's represented as a single multi-select survey_var instead. Each
-# column is a response *option* (a sport you can pick), not a
-# subquestion, since the question itself ("which sports do you play?")
-# is singular.
+survey_var(
+  stem = "S_GENDER",
+  cols = "S_GENDER",
+  type = "single",
+  question_text = "What is your gender?",
+  response_options = list(`1` = "Male", `2` = "Female")
+)
+
 survey_var(
   stem = "M_SPORTS",
   cols = c("M_SPORTS_1", "M_SPORTS_2", "M_SPORTS_3", "M_SPORTS_4"),
   type = "multi",
   question_text = "Which of the following sports do you play?",
-  option_labels = list(
+  response_options = list(
     M_SPORTS_1 = "Basketball",
     M_SPORTS_2 = "Soccer",
     M_SPORTS_3 = "Tennis",

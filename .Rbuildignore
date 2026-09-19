@@ -3,3 +3,5 @@
 ^[.]?air[.]toml$
 ^[.]?jarl[.]toml$
 ^\.github$
+^dev$
+^CLAUDE\.md$

@@ -1,172 +1,139 @@
-# A Grouped Set of survey_var Objects -----------------------------------------
+# Grouped Survey Questions -----------------------------------------------------
 
-# A `survey_var_group` bundles several *separately-asked* survey_var objects
-# that share the same conceptual question but differ by some looping
-# dimension (e.g. the same interest question asked once per device). This is
-# distinct from a single survey_var's `cols`/`subquestion_labels`, which
-# represent *parts of one asking* (e.g. one column per sport in a
-# multi-select) -- here, each member is its own complete, independently valid
-# survey_var, because each one corresponds to a separate respondent-facing
-# question instance, not a sub-item of one question.
+## Class -----------------------------------------------------------------------
 
-#' A group of `survey_var` objects sharing a loop dimension
+#' A group of `survey_var` objects sharing one question
 #'
 #' `survey_var_group` bundles several [survey_var] objects that ask
-#' conceptually the same question but were asked separately across some
-#' looping dimension (e.g. the same question repeated once per device).
+#' conceptually the same question but were answered *separately*, once per
+#' level of some dimension. This covers matrix/grid questions, where the
+#' dimension is the row item, and looped questions, where it is the loop
+#' level -- structurally these are the same thing.
 #'
-#' @param group_var A single string naming the looping dimension, e.g.
-#'   `"device"`.
-#' @param group_options A character vector of the loop's possible values,
-#'   e.g. `c("iPhone", "Android")`.
+#' Contrast a multi-select [survey_var], whose columns are options within a
+#' single answer. Here each member is its own complete, independently valid
+#' `survey_var`, because each corresponds to a separate answer the
+#' respondent gave.
+#'
+#' @param stem A single string: the group's conceptual name, e.g.
+#'   `"S_SPORTS_FREQ"`.
+#' @param group_var A single string naming the dimension the question varies
+#'   over, e.g. `"sport"` for a matrix or `"device"` for a loop.
+#' @param group_options A character vector of that dimension's levels, e.g.
+#'   `c("Basketball", "Soccer")`. Must not contain duplicates.
 #' @param members A named list of [survey_var] objects, one per entry in
-#'   `group_options`, named to match.
+#'   `group_options`, named to match. All members must share the same `type`.
+#' @param question_text A single string with the shared question as asked,
+#'   or `NA` if not (yet) known.
 #'
 #' @return A `survey_var_group` object.
 #' @examples
-#' iphone <- survey_var(
-#'   stem = "M_INTERESTED_IPHONE",
-#'   cols = c("M_INTERESTED_IPHONE_1", "M_INTERESTED_IPHONE_2"),
-#'   type = "multi",
-#'   option_labels = list(
-#'     M_INTERESTED_IPHONE_1 = "Camera",
-#'     M_INTERESTED_IPHONE_2 = "Battery Life"
-#'   )
-#' )
-#' android <- survey_var(
-#'   stem = "M_INTERESTED_ANDROID",
-#'   cols = c("M_INTERESTED_ANDROID_1", "M_INTERESTED_ANDROID_2"),
-#'   type = "multi",
-#'   option_labels = list(
-#'     M_INTERESTED_ANDROID_1 = "Camera",
-#'     M_INTERESTED_ANDROID_2 = "Battery Life"
-#'   )
-#' )
+#' freq <- list(`1` = "Never", `2` = "Rarely", `3` = "Often")
 #' survey_var_group(
-#'   group_var = "device",
-#'   group_options = c("iPhone", "Android"),
-#'   members = list(iPhone = iphone, Android = android)
+#'   stem = "S_SPORTS_FREQ",
+#'   group_var = "sport",
+#'   group_options = c("Basketball", "Soccer"),
+#'   question_text = "How often do you play each of the following sports?",
+#'   members = list(
+#'     Basketball = survey_var(
+#'       stem = "S_SPORTS_FREQ_1",
+#'       cols = "S_SPORTS_FREQ_1",
+#'       type = "single",
+#'       response_options = freq
+#'     ),
+#'     Soccer = survey_var(
+#'       stem = "S_SPORTS_FREQ_2",
+#'       cols = "S_SPORTS_FREQ_2",
+#'       type = "single",
+#'       response_options = freq
+#'     )
+#'   )
 #' )
 #' @export
 survey_var_group <- S7::new_class(
   "survey_var_group",
   properties = list(
+    stem = S7::class_character,
     group_var = S7::class_character,
     group_options = S7::class_character,
-    members = S7::class_list
+    members = S7::class_list,
+    question_text = S7::new_property(
+      S7::class_character,
+      default = NA_character_
+    )
   ),
   validator = function(self) {
-    validate_survey_var_group_fields(
-      self@group_var,
-      self@group_options,
-      self@members
-    )
+    if (length(self@stem) != 1 || is.na(self@stem) || !nzchar(self@stem)) {
+      return("@stem must be a single non-empty string")
+    }
+    if (
+      length(self@group_var) != 1 ||
+        is.na(self@group_var) ||
+        !nzchar(self@group_var)
+    ) {
+      return("@group_var must be a single non-empty string")
+    }
+    if (length(self@group_options) == 0) {
+      return("@group_options must contain at least one value")
+    }
+    if (anyDuplicated(self@group_options) > 0) {
+      return("@group_options must not contain duplicates")
+    }
+    if (!setequal(names(self@members), self@group_options)) {
+      return("names(@members) must match @group_options exactly")
+    }
+    if (
+      !all(vapply(
+        self@members,
+        S7::S7_inherits,
+        logical(1),
+        class = survey_var
+      ))
+    ) {
+      return("@members must all be survey_var objects")
+    }
+    types <- vapply(self@members, function(m) m@type, character(1))
+    if (length(unique(types)) > 1) {
+      return("all @members must share the same @type")
+    }
+    NULL
   }
 )
+## Print -----------------------------------------------------------------------
 
-# Structural invariants only, mirroring validate_survey_var_fields(): returns
-# NULL when valid, or a description of the problem (S7 validator convention).
-validate_survey_var_group_fields <- function(
-  group_var,
-  group_options,
-  members
-) {
-  if (length(group_var) != 1 || is.na(group_var) || !nzchar(group_var)) {
-    return("@group_var must be a single non-empty string")
-  }
-  if (length(group_options) == 0) {
-    return("@group_options must contain at least one value")
-  }
-  if (anyDuplicated(group_options) > 0) {
-    return("@group_options must not contain duplicates")
-  }
-  if (length(group_options) != length(members)) {
-    return("@group_options must have exactly one entry per @members")
-  }
-  if (!setequal(names(members), group_options)) {
-    return("names(@members) must match @group_options exactly")
-  }
-  if (!all(vapply(members, S7::S7_inherits, logical(1), class = survey_var))) {
-    return("@members must all be survey_var objects")
-  }
-  types <- vapply(members, get_type, character(1))
-  if (length(unique(types)) > 1) {
-    return("all @members must share the same @type")
-  }
-  NULL
-}
-
-## Accessors ------------------------------------------------------------
-
-#' Access `survey_var_group` fields
-#'
-#' @param g A [survey_var_group] object.
-#' @return The requested field.
-#' @name survey_var_group-accessors
-#' @export
-get_group_var <- function(g) g@group_var
-
-#' @rdname survey_var_group-accessors
-#' @export
-get_group_options <- function(g) g@group_options
-
-#' @rdname survey_var_group-accessors
-#' @export
-get_members <- function(g) g@members
-
-#' Access a single member of a `survey_var_group`
-#'
-#' @param g A [survey_var_group] object.
-#' @param option A single string, one of `get_group_options(g)`.
-#' @return The [survey_var] for that option.
-#' @export
-get_member <- function(g, option) g@members[[option]]
-
-## Print method -----------------------------------------------------------
-
-# Reusable formatter -- kept separate from the print method itself, matching
-# format_survey_var()'s split, so it can be unit-tested independent of cat().
 format_survey_var_group <- function(g, n = 5) {
-  gvar <- get_group_var(g)
-  gopts <- get_group_options(g)
-  mem <- get_members(g)
-  member_type <- if (length(mem) > 0) get_type(mem[[1]]) else NA_character_
-
-  label_w <- nchar("Group Var:")
-
-  lines <- c(
-    paste0(fmt_tag("survey_var_group"), " ", fmt_object_name(gvar)),
-    wrap_field("Group Var", gvar, label_w),
-    wrap_field(
-      "Type",
-      if (member_type %in% names(type_display_names)) {
-        type_display_names[[member_type]]
-      } else {
-        member_type
-      },
-      label_w
-    ),
-    wrap_field("Members", length(mem), label_w)
-  )
-
-  lines <- c(lines, paste0("  ", fmt_collection("Group Options:")))
-  tr <- truncate_items(gopts, n)
-  for (i in seq_along(tr$shown)) {
-    lines <- c(
-      lines,
-      wrap_field(as.character(i), tr$shown[[i]], label_w = 2, indent = "  ")
+  width <- nchar("Group Var:")
+  tr <- truncate_items(g@group_options, n)
+  option_width <- nchar(as.character(length(g@group_options))) + 1L
+  cli::cli_fmt({
+    cli::cli_text("{.cls survey_var_group} {fmt_object_name(g@stem)}")
+    cli_field_block(width)
+    cli_question_line(g@question_text, width)
+    cli::cli_text("{fmt_field('Group Var', width)} {fmt_level(g@group_var)}")
+    cli::cli_text(
+      "{fmt_field('Type', width)} {fmt_level(survey_var_types[[g@members[[1]]@type]])}"
     )
-  }
-  if (tr$more > 0) {
-    lines <- c(lines, truncation_note(tr$more, ""))
-  }
-
-  lines
+    cli::cli_text(
+      "{fmt_field('Members', width)} {fmt_level(length(g@members))}"
+    )
+    cli::cli_end()
+    cli_field_block(option_width)
+    cli::cli_text("{fmt_collection('Group Options:')}")
+    for (i in seq_along(tr$shown)) {
+      cli::cli_text(
+        "{fmt_field(as.character(i), option_width)} {fmt_level(tr$shown[[i]])}"
+      )
+    }
+    cli_truncation_note(tr$more)
+    cli::cli_end()
+  })
 }
 
-# `n` caps how many group options are printed before truncating; pass
-# `n = Inf` to always print in full.
+S7::method(format, survey_var_group) <- function(x, ..., n = 5) {
+  format_survey_var_group(x, n = n)
+}
+
 S7::method(print, survey_var_group) <- function(x, ..., n = 5) {
-  cat(format_survey_var_group(x, n = n), sep = "\n")
+  cat(format(x, n = n), sep = "\n")
   invisible(x)
 }

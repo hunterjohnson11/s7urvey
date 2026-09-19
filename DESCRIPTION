@@ -1,8 +1,9 @@
 Package: s7urvey
 Title: S7 Object Handling of Survey Data
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: 
-    person("Hunter", "Johnson", role = c("aut", "cre"))
+    person("Hunter", "Johnson", email = "hunterdanj@hotmail.com",
+           role = c("aut", "cre"))
 Description: Represents survey questions as single S7 objects that reflect
     how respondents and researchers think about them, independent of how
     the underlying data file stores each question as one or more raw
@@ -10,10 +11,8 @@ Description: Represents survey questions as single S7 objects that reflect
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.0.0
 Imports: 
     cli,
-    rlang,
     S7
 Suggests: 
     testthat (>= 3.0.0),
@@ -22,3 +21,4 @@ Config/testthat/edition: 3
 Depends: 
     R (>= 3.5)
 LazyData: true
+Config/roxygen2/version: 8.1.0

@@ -2,54 +2,68 @@
 % Please edit documentation in R/survey-var-group.R
 \name{survey_var_group}
 \alias{survey_var_group}
-\title{A group of \code{survey_var} objects sharing a loop dimension}
+\title{A group of \code{survey_var} objects sharing one question}
 \usage{
 survey_var_group(
+  stem = character(0),
   group_var = character(0),
   group_options = character(0),
-  members = list()
+  members = list(),
+  question_text = NA_character_
 )
 }
 \arguments{
-\item{group_var}{A single string naming the looping dimension, e.g.
-\code{"device"}.}
+\item{stem}{A single string: the group's conceptual name, e.g.
+\code{"S_SPORTS_FREQ"}.}
 
-\item{group_options}{A character vector of the loop's possible values,
-e.g. \code{c("iPhone", "Android")}.}
+\item{group_var}{A single string naming the dimension the question varies
+over, e.g. \code{"sport"} for a matrix or \code{"device"} for a loop.}
+
+\item{group_options}{A character vector of that dimension's levels, e.g.
+\code{c("Basketball", "Soccer")}. Must not contain duplicates.}
 
 \item{members}{A named list of \link{survey_var} objects, one per entry in
-\code{group_options}, named to match.}
+\code{group_options}, named to match. All members must share the same \code{type}.}
+
+\item{question_text}{A single string with the shared question as asked,
+or \code{NA} if not (yet) known.}
 }
 \value{
 A \code{survey_var_group} object.
 }
 \description{
 \code{survey_var_group} bundles several \link{survey_var} objects that ask
-conceptually the same question but were asked separately across some
-looping dimension (e.g. the same question repeated once per device).
+conceptually the same question but were answered \emph{separately}, once per
+level of some dimension. This covers matrix/grid questions, where the
+dimension is the row item, and looped questions, where it is the loop
+level -- structurally these are the same thing.
+}
+\details{
+Contrast a multi-select \link{survey_var}, whose columns are options within a
+single answer. Here each member is its own complete, independently valid
+\code{survey_var}, because each corresponds to a separate answer the
+respondent gave.
 }
 \examples{
-iphone <- survey_var(
-  stem = "M_INTERESTED_IPHONE",
-  cols = c("M_INTERESTED_IPHONE_1", "M_INTERESTED_IPHONE_2"),
-  type = "multi",
-  option_labels = list(
-    M_INTERESTED_IPHONE_1 = "Camera",
-    M_INTERESTED_IPHONE_2 = "Battery Life"
-  )
-)
-android <- survey_var(
-  stem = "M_INTERESTED_ANDROID",
-  cols = c("M_INTERESTED_ANDROID_1", "M_INTERESTED_ANDROID_2"),
-  type = "multi",
-  option_labels = list(
-    M_INTERESTED_ANDROID_1 = "Camera",
-    M_INTERESTED_ANDROID_2 = "Battery Life"
-  )
-)
+freq <- list(`1` = "Never", `2` = "Rarely", `3` = "Often")
 survey_var_group(
-  group_var = "device",
-  group_options = c("iPhone", "Android"),
-  members = list(iPhone = iphone, Android = android)
+  stem = "S_SPORTS_FREQ",
+  group_var = "sport",
+  group_options = c("Basketball", "Soccer"),
+  question_text = "How often do you play each of the following sports?",
+  members = list(
+    Basketball = survey_var(
+      stem = "S_SPORTS_FREQ_1",
+      cols = "S_SPORTS_FREQ_1",
+      type = "single",
+      response_options = freq
+    ),
+    Soccer = survey_var(
+      stem = "S_SPORTS_FREQ_2",
+      cols = "S_SPORTS_FREQ_2",
+      type = "single",
+      response_options = freq
+    )
+  )
 )
 }

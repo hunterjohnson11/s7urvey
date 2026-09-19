@@ -1,4 +1,4 @@
-# Documentation for shipped example data -------------------------------------
+# Package Data -----------------------------------------------------------------
 
 #' A synthetic survey dataset for examples and tests
 #'

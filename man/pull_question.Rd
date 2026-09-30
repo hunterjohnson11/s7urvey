@@ -9,48 +9,47 @@ pull_question(data, question)
 \arguments{
 \item{data}{A data frame holding the survey's raw columns.}
 
-\item{question}{A \link{survey_var} or \link{survey_var_group}.}
+\item{question}{A \link{single_select}, \link{multi_select}, \link{open_end} or \link{battery}.}
 }
 \value{
 A data frame with columns \code{.row}, \code{group}, \code{item}, and \code{value}.
 }
 \description{
 \code{pull_question()} is the bridge between a question's description and the
-answers behind it. Given the data and a \link{survey_var} or \link{survey_var_group},
-it returns one long data frame of answers with value labels already applied.
+answers behind it. Given the data and a question, it returns one long data
+frame of answers with value labels already applied.
 }
 \details{
-The result always has the same four columns, whatever the question's shape,
-so a caller never has to reshape before counting:
+The result always has the same four columns, whatever kind the question
+is, so a caller never has to reshape before counting:
 
 \describe{
 \item{\code{.row}}{The respondent's row number in \code{data}.}
-\item{\code{group}}{For a \link{survey_var_group}, the group option this answer
-belongs to; \code{NA} for a plain \link{survey_var}.}
-\item{\code{item}}{The sub-item within the question: the selected option for a
-\code{multi}, the column name for \code{other}, and \code{NA} for \code{single} and
-\code{open_end}, which have only one answer each.}
-\item{\code{value}}{The answer. A labelled factor for \code{single}, \code{TRUE}/\code{FALSE}
-for each option of a \code{multi}, and the raw column otherwise.}
+\item{\code{group}}{For a \link{battery}, the group option this answer belongs to;
+\code{NA} otherwise.}
+\item{\code{item}}{The sub-item within the question: the option for a
+\link{multi_select}, and \code{NA} for a \link{single_select} or \link{open_end}, which
+have only one answer each.}
+\item{\code{value}}{The answer. A labelled factor for a \link{single_select},
+\code{TRUE}/\code{FALSE} for each option of a \link{multi_select}, and the raw column
+for an \link{open_end}.}
 }
 
-Every respondent appears for every option of a \code{multi}, selected or not, so
-the base is preserved and counting selections is \code{sum(value)}.
+Every respondent appears for every option of a \link{multi_select}, selected or
+not, so the base is preserved and counting selections is \code{sum(value)}.
 }
 \examples{
-gender <- survey_var(
+gender <- single_select(
   stem = "S_GENDER",
   cols = "S_GENDER",
-  type = "single",
   question_text = "What is your gender?",
   response_options = list(`1` = "Male", `2` = "Female", `3` = "Prefer not to say")
 )
 head(pull_question(example_survey, gender))
 
-sports <- survey_var(
+sports <- multi_select(
   stem = "M_SPORTS",
   cols = paste0("M_SPORTS_", 1:4),
-  type = "multi",
   question_text = "Which of the following sports do you play?",
   response_options = list(
     M_SPORTS_1 = "Basketball",

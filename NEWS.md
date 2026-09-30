@@ -1,3 +1,9 @@
+# s7urvey (development version)
+
+- Each kind of question is now its own class under an abstract `question` parent: `single_select()`, `multi_select()`, `open_end()` and `battery()`. They replace `survey_var()`, whose kind was a `type` word, and `survey_var_group()`, which is now `battery()`. The `"other"` type is gone; named kinds will replace it.
+
+- `pull_question()` is now an S7 generic with one method per kind, so adding a kind means adding a method rather than editing a type check.
+
 # s7urvey 0.1.0
 
 First development release. The API is experimental and will change without deprecation warnings.

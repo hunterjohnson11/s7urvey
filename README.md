@@ -23,15 +23,14 @@ The goal is a package that allows users to view survey data in R the way they wo
 
 ## The model
 
-Two classes, split on how many answers the respondent gave.
+Each kind of question is its own class: `single_select`, `multi_select`, `open_end` and `battery`.
 
-`survey_var` is one question the respondent answered once, however many columns it occupies:
+The first three are one question the respondent answered once, however many columns it occupies:
 
 ``` r
-survey_var(
+multi_select(
   stem = "M_SPORTS",
   cols = c("M_SPORTS_1", "M_SPORTS_2", "M_SPORTS_3", "M_SPORTS_4"),
-  type = "multi",
   question_text = "Which of the following sports do you play?",
   response_options = list(
     M_SPORTS_1 = "Basketball",
@@ -40,7 +39,7 @@ survey_var(
     M_SPORTS_4 = "Swimming"
   )
 )
-#> <survey_var> M_SPORTS
+#> <multi_select> M_SPORTS
 #>   Type:     Multi-Select
 #>   Columns:  4
 #>   Question: Which of the following sports do you play?
@@ -51,10 +50,10 @@ survey_var(
 #>   M_SPORTS_4: Swimming
 ```
 
-`survey_var_group` is one question answered *separately*, once per level of some dimension. A matrix and a looped question are the same shape, so both are groups:
+A `battery` is one question answered *separately*, once per level of some dimension. A matrix and a looped question are the same shape, so both are batteries:
 
 ``` r
-#> <survey_var_group> S_SPORTS_FREQ
+#> <battery> S_SPORTS_FREQ
 #>   Question:  How often do you play each of the following sports?
 #>   Group Var: sport
 #>   Type:      Single-Select
@@ -64,15 +63,15 @@ survey_var(
 #>   2: Soccer
 ```
 
-The overarching question lives on the group; each row item is its own `survey_var` with the shared response scale.
+The overarching question lives on the battery; each row item is its own `single_select` with the shared response scale.
 
 ## Labels are optional
 
-Not every file has usable question text, so classification never depends on it. A question is classified from its structure alone — `stem`, `cols`, and `type`:
+Not every file has usable question text, so classification never depends on it. A question is classified from its structure alone — its class, `stem`, and `cols`:
 
 ``` r
-survey_var(stem = "M_SPORTS", cols = paste0("M_SPORTS_", 1:4), type = "multi")
-#> <survey_var> M_SPORTS
+multi_select(stem = "M_SPORTS", cols = paste0("M_SPORTS_", 1:4))
+#> <multi_select> M_SPORTS
 #>   Type:     Multi-Select
 #>   Columns:  4
 #>   Question: (none)
@@ -95,6 +94,6 @@ pak::pak("hunterjohnson11/s7urvey")
 
 ## Status
 
-Working: the two classes, structural validation, and printing.
+Working: the four question classes, structural validation, and printing.
 
 Not built yet: any way to get from a question to the values behind it, a base or eligibility field, and anything that reads a survey file automatically.

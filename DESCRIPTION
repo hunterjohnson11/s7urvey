@@ -22,3 +22,9 @@ Depends:
     R (>= 3.5)
 LazyData: true
 Config/roxygen2/version: 8.1.0
+Collate: 
+    'data.R'
+    'format.R'
+    'question.R'
+    'pull-question.R'
+    'zzz.R'

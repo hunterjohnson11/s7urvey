@@ -10,10 +10,12 @@ The intended downstream consumer is a crosstab function, which should be able to
 
 ## The model
 
-- `survey_var` — one question the respondent answered once. Type is `single`, `multi`, `open_end`, or `other`.
-- `survey_var_group` — one question answered separately, once per level of some dimension. Covers both matrix/grid questions and looped questions.
+Each kind of question is its own class under the abstract parent `question`, and functions are S7 generics with one method per kind, never `if` checks on a kind word.
 
-All descriptive metadata is optional. A question is classified from structure alone (`stem`, `cols`, `type`), because not every source has usable labels.
+- `single_select`, `multi_select`, `open_end` — one question the respondent answered once.
+- `battery` — one question answered separately, once per level of some dimension. Covers both matrix/grid questions and looped questions.
+
+All descriptive metadata is optional. A question is classified from structure alone (its class, `stem`, `cols`), because not every source has usable labels.
 
 `example_survey` is synthetic data shipped for examples and tests.
 

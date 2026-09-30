@@ -11,8 +11,8 @@ cli::cli_h1("Palette swatch")
 cat(
   paste0(
     "  ",
-    cli::format_inline("{.cls survey_var}"),
-    "        {.cls} inline      class tag"
+    cli::format_inline("{.cls single_select}"),
+    "     {.cls} inline      class tag"
   ),
   paste0(
     "  ",
@@ -34,10 +34,9 @@ cat(
 )
 
 cli::cli_h1("Single-select")
-single <- survey_var(
+single <- single_select(
   stem = "S_GENDER",
   cols = "S_GENDER",
-  type = "single",
   question_text = "What is your gender?",
   response_options = list(
     `1` = "Male",
@@ -48,10 +47,9 @@ single <- survey_var(
 print(single)
 
 cli::cli_h1("Multi-select")
-multi <- survey_var(
+multi <- multi_select(
   stem = "M_SPORTS",
   cols = paste0("M_SPORTS_", 1:4),
-  type = "multi",
   question_text = "Which of the following sports do you play?",
   response_options = list(
     M_SPORTS_1 = "Basketball",
@@ -62,20 +60,19 @@ multi <- survey_var(
 )
 print(multi)
 
-cli::cli_h1("Matrix (group of single-selects)")
+cli::cli_h1("Matrix (battery of single-selects)")
 freq <- list(`1` = "Never", `2` = "Rarely", `3` = "Sometimes", `4` = "Often")
 items <- c("Basketball", "Soccer", "Tennis")
-matrix_group <- survey_var_group(
+matrix_group <- battery(
   stem = "S_SPORTS_FREQ",
   group_var = "sport",
   group_options = items,
   question_text = "How often do you play each of the following sports?",
   members = setNames(
     lapply(seq_along(items), function(i) {
-      survey_var(
+      single_select(
         stem = paste0("S_SPORTS_FREQ_", i),
         cols = paste0("S_SPORTS_FREQ_", i),
-        type = "single",
         question_text = paste0("How often do you play ", items[i], "?"),
         response_options = freq
       )
@@ -86,25 +83,22 @@ matrix_group <- survey_var_group(
 print(matrix_group)
 
 cli::cli_h1("Open-end")
-print(survey_var(
+print(open_end(
   stem = "comments_oe",
   cols = "comments_oe",
-  type = "open_end",
   question_text = "Any other comments about your sports habits?"
 ))
 
 cli::cli_h1("Bare object (grey annotation)")
-print(survey_var(
+print(multi_select(
   stem = "M_SPORTS",
-  cols = paste0("M_SPORTS_", 1:4),
-  type = "multi"
+  cols = paste0("M_SPORTS_", 1:4)
 ))
 
 cli::cli_h1("Truncation (grey note)")
-brands <- survey_var(
+brands <- multi_select(
   stem = "M_BRANDS",
   cols = paste0("M_BRANDS_", 1:12),
-  type = "multi",
   question_text = "Which of these brands have you purchased in the last six months?",
   response_options = setNames(
     as.list(paste("Brand", LETTERS[1:12])),
@@ -117,10 +111,9 @@ cli::cli_h1("Same object, n = Inf")
 print(brands, n = Inf)
 
 cli::cli_h1("Long question text (wrap + hanging indent)")
-print(survey_var(
+print(single_select(
   stem = "S_LONG",
   cols = "S_LONG",
-  type = "single",
   question_text = paste(
     "Thinking about the past twelve months and everything you have done",
     "in your free time, how often would you say you took part in organised",
@@ -129,26 +122,24 @@ print(survey_var(
   response_options = freq
 ))
 
-cli::cli_h1("Looped question (group of multi-selects)")
-print(survey_var_group(
+cli::cli_h1("Looped question (battery of multi-selects)")
+print(battery(
   stem = "M_INTERESTED",
   group_var = "device",
   group_options = c("iPhone", "Android"),
   question_text = "Which features interest you?",
   members = list(
-    iPhone = survey_var(
+    iPhone = multi_select(
       stem = "M_INTERESTED_IPHONE",
       cols = paste0("M_INTERESTED_IPHONE_", 1:2),
-      type = "multi",
       response_options = list(
         M_INTERESTED_IPHONE_1 = "Camera",
         M_INTERESTED_IPHONE_2 = "Battery life"
       )
     ),
-    Android = survey_var(
+    Android = multi_select(
       stem = "M_INTERESTED_ANDROID",
       cols = paste0("M_INTERESTED_ANDROID_", 1:2),
-      type = "multi",
       response_options = list(
         M_INTERESTED_ANDROID_1 = "Camera",
         M_INTERESTED_ANDROID_2 = "Battery life"

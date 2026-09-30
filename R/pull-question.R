@@ -81,101 +81,49 @@ stack_answers <- function(parts, groups) {
   )
 }
 
-pull_survey_var <- function(data, question) {
-  check_question_cols(data, question@cols)
-  rows <- seq_len(nrow(data))
-  options <- question@response_options
-
-  if (question@type %in% c("single", "open_end")) {
-    values <- data[[question@cols]]
-    if (question@type == "single") {
-      values <- apply_response_labels(values, options)
-    }
-    return(answer_frame(rows, NA_character_, NA_character_, values))
-  }
-
-  if (question@type == "multi") {
-    check_dummy_cols(data, question@cols)
-    return(answer_frame(
-      row = rep(rows, times = length(question@cols)),
-      group = NA_character_,
-      item = rep(
-        vapply(
-          question@cols,
-          function(col) option_label(options, col),
-          character(1)
-        ),
-        each = length(rows)
-      ),
-      value = unlist(
-        lapply(question@cols, function(col) as.logical(data[[col]])),
-        use.names = FALSE
-      )
-    ))
-  }
-
-  answer_frame(
-    row = rep(rows, times = length(question@cols)),
-    group = NA_character_,
-    item = rep(question@cols, each = length(rows)),
-    value = unlist(
-      lapply(question@cols, function(col) data[[col]]),
-      use.names = FALSE
-    )
-  )
-}
-
-pull_survey_var_group <- function(data, question) {
-  parts <- lapply(
-    question@group_options,
-    function(option) pull_question(data, question@members[[option]])
-  )
-  stack_answers(parts, question@group_options)
-}
 
 ## Extraction ------------------------------------------------------------------
 
 #' Pull a question's answers out of survey data
 #'
 #' `pull_question()` is the bridge between a question's description and the
-#' answers behind it. Given the data and a [survey_var] or [survey_var_group],
-#' it returns one long data frame of answers with value labels already applied.
+#' answers behind it. Given the data and a question, it returns one long data
+#' frame of answers with value labels already applied.
 #'
-#' The result always has the same four columns, whatever the question's shape,
-#' so a caller never has to reshape before counting:
+#' The result always has the same four columns, whatever kind the question
+#' is, so a caller never has to reshape before counting:
 #'
 #' \describe{
 #'   \item{`.row`}{The respondent's row number in `data`.}
-#'   \item{`group`}{For a [survey_var_group], the group option this answer
-#'     belongs to; `NA` for a plain [survey_var].}
-#'   \item{`item`}{The sub-item within the question: the selected option for a
-#'     `multi`, the column name for `other`, and `NA` for `single` and
-#'     `open_end`, which have only one answer each.}
-#'   \item{`value`}{The answer. A labelled factor for `single`, `TRUE`/`FALSE`
-#'     for each option of a `multi`, and the raw column otherwise.}
+#'   \item{`group`}{For a [battery], the group option this answer belongs to;
+#'     `NA` otherwise.}
+#'   \item{`item`}{The sub-item within the question: the option for a
+#'     [multi_select], and `NA` for a [single_select] or [open_end], which
+#'     have only one answer each.}
+#'   \item{`value`}{The answer. A labelled factor for a [single_select],
+#'     `TRUE`/`FALSE` for each option of a [multi_select], and the raw column
+#'     for an [open_end].}
 #' }
 #'
-#' Every respondent appears for every option of a `multi`, selected or not, so
-#' the base is preserved and counting selections is `sum(value)`.
+#' Every respondent appears for every option of a [multi_select], selected or
+#' not, so the base is preserved and counting selections is `sum(value)`.
 #'
 #' @param data A data frame holding the survey's raw columns.
-#' @param question A [survey_var] or [survey_var_group].
+#' @param question A [single_select], [multi_select], [open_end] or [battery].
 #'
 #' @return A data frame with columns `.row`, `group`, `item`, and `value`.
 #' @examples
-#' gender <- survey_var(
+#' gender <- single_select(
 #'   stem = "S_GENDER",
 #'   cols = "S_GENDER",
-#'   type = "single",
 #'   question_text = "What is your gender?",
 #'   response_options = list(`1` = "Male", `2` = "Female", `3` = "Prefer not to say")
 #' )
 #' head(pull_question(example_survey, gender))
 #'
-#' sports <- survey_var(
+#' sports <- multi_select(
 #'   stem = "M_SPORTS",
 #'   cols = paste0("M_SPORTS_", 1:4),
-#'   type = "multi",
 #'   question_text = "Which of the following sports do you play?",
 #'   response_options = list(
 #'     M_SPORTS_1 = "Basketball",
@@ -186,22 +134,78 @@ pull_survey_var_group <- function(data, question) {
 #' )
 #' answers <- pull_question(example_survey, sports)
 #' table(answers$item, answers$value)
+#' @include question.R
 #' @export
-pull_question <- function(data, question) {
-  if (!is.data.frame(data)) {
-    cli::cli_abort(c(
-      "{.arg data} must be a data frame.",
-      x = "You supplied {.cls {class(data)}}."
-    ))
-  }
-  if (S7::S7_inherits(question, survey_var)) {
-    return(pull_survey_var(data, question))
-  }
-  if (S7::S7_inherits(question, survey_var_group)) {
-    return(pull_survey_var_group(data, question))
-  }
-  cli::cli_abort(c(
-    "{.arg question} must be a {.cls survey_var} or {.cls survey_var_group}.",
-    x = "You supplied {.cls {class(question)}}."
-  ))
+pull_question <- S7::new_generic(
+  "pull_question",
+  c("data", "question"),
+  function(data, question) S7::S7_dispatch()
+)
+
+S7::method(
+  pull_question,
+  list(S7::class_data.frame, single_select)
+) <- function(
+  data,
+  question
+) {
+  check_question_cols(data, question@cols, call = parent.frame())
+  answer_frame(
+    row = seq_len(nrow(data)),
+    group = NA_character_,
+    item = NA_character_,
+    value = apply_response_labels(
+      data[[question@cols]],
+      question@response_options
+    )
+  )
+}
+
+S7::method(pull_question, list(S7::class_data.frame, open_end)) <- function(
+  data,
+  question
+) {
+  check_question_cols(data, question@cols, call = parent.frame())
+  answer_frame(
+    row = seq_len(nrow(data)),
+    group = NA_character_,
+    item = NA_character_,
+    value = data[[question@cols]]
+  )
+}
+
+S7::method(pull_question, list(S7::class_data.frame, multi_select)) <- function(
+  data,
+  question
+) {
+  check_question_cols(data, question@cols, call = parent.frame())
+  check_dummy_cols(data, question@cols, call = parent.frame())
+  rows <- seq_len(nrow(data))
+  answer_frame(
+    row = rep(rows, times = length(question@cols)),
+    group = NA_character_,
+    item = rep(
+      vapply(
+        question@cols,
+        function(col) option_label(question@response_options, col),
+        character(1)
+      ),
+      each = length(rows)
+    ),
+    value = unlist(
+      lapply(question@cols, function(col) as.logical(data[[col]])),
+      use.names = FALSE
+    )
+  )
+}
+
+S7::method(pull_question, list(S7::class_data.frame, battery)) <- function(
+  data,
+  question
+) {
+  parts <- lapply(
+    question@group_options,
+    function(option) pull_question(data, question@members[[option]])
+  )
+  stack_answers(parts, question@group_options)
 }
